@@ -1,0 +1,10 @@
+[package]
+name = "hetu"
+version = "0.1.0"
+authors = ["lyn"]
+edition = "2018"
+
+
+
+[dependencies]
+rand = "*"
