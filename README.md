@@ -1,6 +1,6 @@
 # Hetu
 A tiny artificial neural network rust library. 
-The project is a simple artificial neural network library that now supports full connectivity, ReLu, Sigmoid, Softmax activation functions. Subsequent will join the convolution layer and so on. This project uses RUST language development
+The project is a simple artificial neural network library that now supports full connectivity, ReLu, Sigmoid, Softmax activation functions.  This project uses RUST language development
 # Can be used like this
 fn main() {
     
