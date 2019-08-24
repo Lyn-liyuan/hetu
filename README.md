@@ -7,7 +7,7 @@ The project is a simple artificial neural network library that now supports Conn
         Dense!(8,4),
         ReLu!(),
         Dense!(3,8),
-        Sofitmax!()
+        Softmax!()
     ];
     let (data, labels) = load_data(args.path.as_path());
     for p in 0..6000 {
