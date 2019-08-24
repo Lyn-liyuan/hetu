@@ -467,7 +467,7 @@ pub mod ann {
     }
 
     #[macro_export]
-    macro_rules! Sofitmax {
+    macro_rules! Softmax {
         () => {
             Box::new(SoftmaxLayer::new())
         };
