@@ -4,9 +4,12 @@
 pub mod ann {
     extern crate rand;
     use rand::Rng;
+    use rand::prelude::*;
+    use rand::seq::SliceRandom;
     type Mat = Vec<Vec<f32>>;
+    type Vector = Vec<f32>;
 
-    pub fn vec_sum_mutiplier(vc1: &Vec<f32>, vc2: &Vec<f32>) -> f32 {
+    pub fn vec_sum_mutiplier(vc1: &Vector, vc2: &Vector) -> f32 {
         if vc1.len() != vc2.len() {
             panic!(
                 "vector size is not equals!!! {} and {}",
@@ -21,11 +24,11 @@ pub mod ann {
         sum
     }
 
-    fn relu(x: &Vec<f32>) -> Vec<f32> {
+    fn relu(x: &Vector) -> Vector {
         x.iter().map(|v| v.max(0.0f32)).collect()
     }
 
-    fn derivative_relu(x: &Vec<f32>) -> Vec<f32> {
+    fn derivative_relu(x: &Vector) -> Vector {
         x.iter()
             .map(|i| if *i >= 0.0f32 { 1f32 } else { 0f32 })
             .collect()
@@ -35,11 +38,11 @@ pub mod ann {
         1.0f32 / (1.0f32 + (-1.0f32 * x).exp())
     }
 
-    fn vec_sigmoid(x: &Vec<f32>) -> Vec<f32> {
+    fn vec_sigmoid(x: &Vector) -> Vector {
         x.iter().map(|v| sigmoid(v)).collect()
     }
 
-    fn softmax(x: &Vec<f32>) -> Vec<f32> {
+    fn softmax(x: &Vector) -> Vector {
         let sum: f32 = x.iter().map(|v| v.exp()).sum();
         x.iter().map(|v| v.exp() / sum).collect()
     }
@@ -62,7 +65,7 @@ pub mod ann {
         acc_count / (label.len() as f32)
     }
 
-    fn derivative_softmax_cross_entropy(x: &Vec<f32>, y: &Vec<f32>) -> Vec<f32> {
+    fn derivative_softmax_cross_entropy(x: &Vector, y: &Vector) -> Vector {
         if x.len() != y.len() {
             panic!("vector size is not equals!!!")
         }
@@ -70,14 +73,14 @@ pub mod ann {
     }
 
     pub fn conv2d_single_kernel(
-        input: &Vec<f32>,
+        input: &Vector,
         h: usize,
         w: usize,
-        weight: &Vec<f32>,
+        weight: &Vector,
         kernel_size: usize,
         padding: usize,
         strides: usize,
-    ) -> Vec<f32> {
+    ) -> Vector {
         if input.len() != (h * w) as usize {
             panic!(
                 "input size error, w={}, h={}, but length is {}",
@@ -138,7 +141,7 @@ pub mod ann {
             / strides;
         let mut rs: Mat = Vec::new();
         for cell in weights.iter() {
-            let mut fm: Vec<f32> = vec![0.0f32; featurs_len];
+            let mut fm: Vector = vec![0.0f32; featurs_len];
             for input in inputs.iter() {
                 let channel =
                     conv2d_single_kernel(input, h, w, cell, kernel_size, padding, strides);
@@ -152,8 +155,8 @@ pub mod ann {
     }
 
     pub struct Node {
-        pub input: Vec<f32>,
-        pub output: Vec<f32>,
+        pub input: Vector,
+        pub output: Vector,
     }
     pub struct Dense {
         pub node: Node,
@@ -184,16 +187,16 @@ pub mod ann {
     }
 
     pub trait Layer {
-        fn forward(&mut self, input: &Mat) -> Mat;
+        fn forward(&mut self, input: &Mat, training: bool) -> Mat;
         fn backward(&mut self, grads: &Mat) -> Mat;
         fn update_weights(&mut self, lamda: f32);
         fn clear(&mut self);
     }
 
     impl Layer for Dense {
-        fn forward(&mut self, input: &Mat) -> Mat {
+        fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
-            let rs: Vec<f32> = (0..self.units)
+            let rs: Vector = (0..self.units)
                 .map(|i| vec_sum_mutiplier(&self.weights[i], &self.node.input))
                 .collect();
             self.node.output = rs.clone();
@@ -269,7 +272,7 @@ pub mod ann {
     }
 
     impl Layer for Conv2d {
-        fn forward(&mut self, input: &Mat) -> Mat {
+        fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.input = input.clone();
             let rs = conv2d(
                 input,
@@ -322,7 +325,7 @@ pub mod ann {
     }
 
     impl Layer for SoftmaxLayer {
-        fn forward(&mut self, input: &Mat) -> Mat {
+        fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
             let rs = softmax(&self.node.input);
             self.node.output = rs.clone();
@@ -353,7 +356,7 @@ pub mod ann {
     }
 
     impl Layer for SigmoidLayer {
-        fn forward(&mut self, input: &Mat) -> Mat {
+        fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
             let rs = vec_sigmoid(&self.node.input);
             self.node.output = rs.clone();
@@ -388,7 +391,7 @@ pub mod ann {
     }
 
     impl Layer for ReLuLayer {
-        fn forward(&mut self, input: &Mat) -> Mat {
+        fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
             let rs = relu(&self.node.input);
             self.node.output = rs.clone();
@@ -409,6 +412,50 @@ pub mod ann {
         fn clear(&mut self) {}
     }
 
+    pub struct Dropout {
+        pub p : f32,
+        mask: Vector
+    }
+
+    impl Dropout {
+        pub fn new(p:f32) -> Self {
+            Dropout {
+                p: p,
+                mask: vec![]
+            }
+        }
+    }
+
+    impl Layer for Dropout {
+        fn forward(&mut self, input: &Mat, training: bool) -> Mat {
+           if training {
+                let vc = input.concat();
+                let in_size = vc.len();
+                self.mask = vec![0.0f32; in_size];
+                for i in 0..((in_size as f32)*(1.0f32-self.p)) as usize {
+                    self.mask[i] = 1.0f32
+                }
+                let mut rng = thread_rng();
+                self.mask.shuffle(&mut rng);
+                vec![vc.iter().enumerate().map(|(i,v)| self.mask[i]*v).collect()]
+           } else {
+               input.clone()
+           }
+        }
+
+        fn backward(&mut self, grads: &Mat) -> Mat {
+            let mut rs:Mat = vec![vec![]];
+            for cell in grads.iter() {
+                rs.push(cell.iter().enumerate().map(|(i,v)| self.mask[i]*v).collect())
+            }
+            rs
+        }
+        fn update_weights(&mut self, _: f32) {}
+        fn clear(&mut self) {}        
+    }
+
+
+
     pub struct Model {
         pub layers: Vec<Box<Layer>>,
     }
@@ -420,19 +467,22 @@ pub mod ann {
         pub fn add(&mut self, layer: Box<Layer>) {
             &self.layers.push(layer);
         }
-        pub fn predict(&mut self, input: &Mat) -> Vec<f32> {
-            let mut pre: Mat = self.layers[0].forward(input);
+        fn forward(&mut self, input: &Mat, training : bool) -> Vector {
+            let mut pre: Mat = self.layers[0].forward(input,training);
             for i in 1..self.layers.len() {
-                pre = self.layers[i].forward(&pre);
+                pre = self.layers[i].forward(&pre,training);
             }
             pre.concat()
+        }
+        pub fn predict(&mut self, input: &Mat) -> Vector {
+            self.forward(input, false)
         }
 
         pub fn fit(&mut self, data: &Vec<Mat>, label: &Mat, lamda: f32) -> f32 {
             let last_label = label;
             let mut out: Mat = Vec::new();
             for i in 0..data.len() {
-                out.push(self.predict(&data[i]));
+                out.push(self.forward(&data[i], true));
                 let true_value = &last_label[i];
                 let mut g: Mat = vec![true_value.clone()];
                 for j in (0..self.layers.len()).rev() {
