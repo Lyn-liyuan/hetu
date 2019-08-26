@@ -15,8 +15,6 @@ include!{"data.rs"}
 
 
 fn main() {
-    let mut rng = thread_rng();
-    println!("Number from 0 to 9: {}", rng.gen_range(0, 10));
     #[derive(StructOpt)]
     struct Cli {
         #[structopt(parse(from_os_str))]
