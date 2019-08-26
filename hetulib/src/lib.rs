@@ -3,9 +3,9 @@
 
 pub mod ann {
     extern crate rand;
-    use rand::Rng;
     use rand::prelude::*;
     use rand::seq::SliceRandom;
+    use rand::Rng;
     type Mat = Vec<Vec<f32>>;
     type Vector = Vec<f32>;
 
@@ -164,13 +164,13 @@ pub mod ann {
         pub input_size: usize,
         pub weights: Mat,
         pub grads: Mat,
-        pub bias:Vector,
-        pub grads_bias:Vector,
-        pub use_bais: bool
+        pub bias: Vector,
+        pub grads_bias: Vector,
+        pub use_bais: bool,
     }
 
     impl Dense {
-        pub fn new(units: usize, input: usize,use_bais:bool) -> Dense {
+        pub fn new(units: usize, input: usize, use_bais: bool) -> Dense {
             let mut rng = rand::thread_rng();
             let weights = (0..units)
                 .map(|_| (0..input).map(|_| rng.gen::<f32>()).collect())
@@ -178,7 +178,7 @@ pub mod ann {
             let mut bias = vec![];
             if use_bais {
                 bias = (0..units).map(|_| rng.gen::<f32>()).collect();
-            } 
+            }
             Dense {
                 units: units,
                 input_size: input,
@@ -188,9 +188,9 @@ pub mod ann {
                 },
                 weights: weights,
                 grads: vec![vec![0.0f32; input]; units],
-                bias:bias,
-                grads_bias:vec![0.0f32; units],
-                use_bais:use_bais,
+                bias: bias,
+                grads_bias: vec![0.0f32; units],
+                use_bais: use_bais,
             }
         }
     }
@@ -206,11 +206,13 @@ pub mod ann {
         fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
             let rs: Vector = (0..self.units)
-                .map(|i| if self.use_bais {
-                            vec_sum_mutiplier(&self.weights[i], &self.node.input)+self.bias[i]
-                         } else {
-                            vec_sum_mutiplier(&self.weights[i], &self.node.input) 
-                    })
+                .map(|i| {
+                    if self.use_bais {
+                        vec_sum_mutiplier(&self.weights[i], &self.node.input) + self.bias[i]
+                    } else {
+                        vec_sum_mutiplier(&self.weights[i], &self.node.input)
+                    }
+                })
                 .collect();
             self.node.output = rs.clone();
             vec![rs]
@@ -430,48 +432,52 @@ pub mod ann {
     }
 
     pub struct Dropout {
-        pub p : f32,
-        mask: Vector
+        pub p: f32,
+        mask: Vector,
     }
 
     impl Dropout {
-        pub fn new(p:f32) -> Self {
-            Dropout {
-                p: p,
-                mask: vec![]
-            }
+        pub fn new(p: f32) -> Self {
+            Dropout { p: p, mask: vec![] }
         }
     }
 
     impl Layer for Dropout {
         fn forward(&mut self, input: &Mat, training: bool) -> Mat {
-           if training {
+            if training {
                 let vc = input.concat();
                 let in_size = vc.len();
                 self.mask = vec![0.0f32; in_size];
-                for i in 0..((in_size as f32)*(1.0f32-self.p)) as usize {
+                for i in 0..((in_size as f32) * (1.0f32 - self.p)) as usize {
                     self.mask[i] = 1.0f32
                 }
                 let mut rng = thread_rng();
                 self.mask.shuffle(&mut rng);
-                vec![vc.iter().enumerate().map(|(i,v)| self.mask[i]*v).collect()]
-           } else {
-               input.clone()
-           }
+                vec![vc
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| self.mask[i] * v)
+                    .collect()]
+            } else {
+                input.clone()
+            }
         }
 
         fn backward(&mut self, grads: &Mat) -> Mat {
-            let mut rs:Mat = vec![vec![]];
+            let mut rs: Mat = vec![vec![]];
             for cell in grads.iter() {
-                rs.push(cell.iter().enumerate().map(|(i,v)| self.mask[i]*v).collect())
+                rs.push(
+                    cell.iter()
+                        .enumerate()
+                        .map(|(i, v)| self.mask[i] * v)
+                        .collect(),
+                )
             }
             rs
         }
         fn update_weights(&mut self, _: f32) {}
-        fn clear(&mut self) {}        
+        fn clear(&mut self) {}
     }
-
-
 
     pub struct Model {
         pub layers: Vec<Box<Layer>>,
@@ -484,10 +490,10 @@ pub mod ann {
         pub fn add(&mut self, layer: Box<Layer>) {
             &self.layers.push(layer);
         }
-        fn forward(&mut self, input: &Mat, training : bool) -> Vector {
-            let mut pre: Mat = self.layers[0].forward(input,training);
+        fn forward(&mut self, input: &Mat, training: bool) -> Vector {
+            let mut pre: Mat = self.layers[0].forward(input, training);
             for i in 1..self.layers.len() {
-                pre = self.layers[i].forward(&pre,training);
+                pre = self.layers[i].forward(&pre, training);
             }
             pre.concat()
         }
@@ -521,8 +527,8 @@ pub mod ann {
     }
     #[macro_export]
     macro_rules! Dense {
-        ($units:expr, $input:expr) => {
-            Box::new(Dense::new($units, $input))
+        ($units:expr, $input:expr, $use_bias:expr) => {
+            Box::new(Dense::new($units, $input, $use_bias))
         };
     }
 
