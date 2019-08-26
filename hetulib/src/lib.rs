@@ -164,15 +164,21 @@ pub mod ann {
         pub input_size: usize,
         pub weights: Mat,
         pub grads: Mat,
+        pub bias:Vector,
+        pub grads_bias:Vector,
+        pub use_bais: bool
     }
 
     impl Dense {
-        pub fn new(units: usize, input: usize) -> Dense {
-            let grads: Mat = vec![vec![0.0f32; input]; units];
+        pub fn new(units: usize, input: usize,use_bais:bool) -> Dense {
             let mut rng = rand::thread_rng();
             let weights = (0..units)
                 .map(|_| (0..input).map(|_| rng.gen::<f32>()).collect())
                 .collect();
+            let mut bias = vec![];
+            if use_bais {
+                bias = (0..units).map(|_| rng.gen::<f32>()).collect();
+            } 
             Dense {
                 units: units,
                 input_size: input,
@@ -181,7 +187,10 @@ pub mod ann {
                     output: vec![],
                 },
                 weights: weights,
-                grads: grads,
+                grads: vec![vec![0.0f32; input]; units],
+                bias:bias,
+                grads_bias:vec![0.0f32; units],
+                use_bais:use_bais,
             }
         }
     }
@@ -197,7 +206,11 @@ pub mod ann {
         fn forward(&mut self, input: &Mat, _: bool) -> Mat {
             self.node.input = input.concat();
             let rs: Vector = (0..self.units)
-                .map(|i| vec_sum_mutiplier(&self.weights[i], &self.node.input))
+                .map(|i| if self.use_bais {
+                            vec_sum_mutiplier(&self.weights[i], &self.node.input)+self.bias[i]
+                         } else {
+                            vec_sum_mutiplier(&self.weights[i], &self.node.input) 
+                    })
                 .collect();
             self.node.output = rs.clone();
             vec![rs]
@@ -208,6 +221,7 @@ pub mod ann {
                     for (k, input) in self.node.input.iter().enumerate() {
                         self.grads[j][k] = grads * input;
                     }
+                    self.grads_bias[j] = *grads;
                 }
             }
             self.grads.clone()
@@ -219,6 +233,9 @@ pub mod ann {
                 for j in 0..self.weights[i].len() {
                     self.weights[i][j] = self.weights[i][j] - lamda * z[i][j];
                 }
+            }
+            for bi in 0..self.bias.len() {
+                self.bias[bi] = self.bias[bi] - lamda * self.grads_bias[bi]
             }
         }
 
