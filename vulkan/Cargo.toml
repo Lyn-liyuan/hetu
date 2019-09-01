@@ -1,0 +1,12 @@
+[package]
+name = "hetu_vulkan"
+version = "0.1.0"
+authors = ["Lyn-liyuan <lyn@intellicloud.ai>"]
+edition = "2018"
+
+[dependencies]
+vulkano = "0.13"
+vulkano-shaders = "0.13"
+rand = "*"
+
+
