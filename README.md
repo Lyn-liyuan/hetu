@@ -1,5 +1,6 @@
 # Hetu
-![HETU](https://github.com/Lyn-liyuan/hetu/raw/master/logo.jpg)
+![HETU](https://github.com/Lyn-liyuan/hetu/raw/master/logo.jpg)   
+
 The Hetu is a mysterious pattern in the ancient Chinese mythology, and the gossip evolved from it can be used for divination and prediction. Its black dots and white dots resemble neurons.So we use the Hetu to name our neural network library.  
 
 The Hetu is a tiny artificial neural network rust library. 
