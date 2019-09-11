@@ -1,10 +1,10 @@
 # Hetu
 A tiny artificial neural network rust library. 
 The project is a simple artificial neural network library that now supports Connected Layer, Convolution Layer, max pooling layer, ReLu, Sigmoid, Softmax activation functions.  This project uses RUST language development
-##directory structure
--exmaple : some examples
--hetulib: the source code of library
--vulkan: the compute operators is base on GPU. It is just an experiment now.
+## directory structure
+- exmaple : some examples
+- hetulib: the source code of library
+- vulkan: the compute operators is base on GPU. It is just an experiment now.
 
 ## example
 ``` rust
