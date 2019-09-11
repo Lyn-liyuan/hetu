@@ -1,6 +1,10 @@
 # Hetu
-A tiny artificial neural network rust library. 
-The project is a simple artificial neural network library and it supports Connected Layer, Convolution Layer, max pooling layer, ReLu, Sigmoid, Softmax activation functions.  This project uses the RUST language to implement.
+![HETU](https://github.com/Lyn-liyuan/hetu/raw/master/logo.jpg)
+The Hetu is a mysterious pattern in the ancient Chinese mythology, and the gossip evolved from it can be used for divination and prediction. Its black dots and white dots resemble neurons.So we use the Hetu to name our neural network library.  
+
+The Hetu is a tiny artificial neural network rust library. 
+The project is a simple artificial neural network library and it supports Connected Layer, Convolution Layer, max pooling layer, ReLu, Sigmoid, Softmax activation functions. This project uses the RUST language to implement.  
+
 ## Directory structure
 - exmaple : some examples
 - hetulib: the source code of library
